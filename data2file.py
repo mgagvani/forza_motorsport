@@ -98,7 +98,7 @@ def return_vals(port, packet_format='dash', config_file="forza_motorsport/exampl
             if n_packets == 0:
                 print('{}: in race, logging data'.format(dt.datetime.now()))
             
-            print(fdp.to_list(params))
+            yield fdp.to_list(params)
             n_packets += 1
             if n_packets % 60 == 0:
                 print('{}: logged {} packets'.format(dt.datetime.now(), n_packets))
