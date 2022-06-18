@@ -46,8 +46,70 @@ def to_str(value):
 
     return('{}'.format(value))
 
+"""
+Added by Manav Gagvani for inter-operabilty between Xbox Game AI and Fora data streaming.
+"""
+def return_vals(port, packet_format='dash', config_file="forza_motorsport/example_configuration.yaml"):
+    '''
+    Port - Listening port #
+    Packet Format - Either "sled" or "dash"
+    Config File - YAML Configuration File.
+    '''
+    print("Started Telemetry")
+
+    if config_file:
+        import yaml
+        with open(config_file) as f:
+            config = yaml.safe_load(f)
+
+        ## The configuration can override everything
+        if 'port' in config:
+            port = config['port']
+
+        if 'format' in config:
+            format = config['format']
+
+        if 'append' in config:
+            append = config['append']
+
+        if 'packet_format' in config:
+            packet_format = config['packet_format']
+
+    params = ForzaDataPacket.get_props(packet_format = packet_format)
+    if config_file and 'parameter_list' in config:
+        params = config['parameter_list']
+
+    log_wall_clock = False
+    if 'wall_clock' in params:
+        log_wall_clock = True
+
+    print("going to bind socket")
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.bind(('', port))
+    print('listening on port {}'.format(port))
+    n_packets = 0
+    
+    while True:
+        message, address = server_socket.recvfrom(1024)
+        fdp = ForzaDataPacket(message, packet_format = packet_format)
+        if log_wall_clock:
+            fdp.wall_clock = dt.datetime.now()
+        if fdp.is_race_on:
+            if n_packets == 0:
+                print('{}: in race, logging data'.format(dt.datetime.now()))
+            
+            yield fdp.to_list(params)
+            n_packets += 1
+            if n_packets % 60 == 0:
+                print('{}: logged {} packets'.format(dt.datetime.now(), n_packets))
+        else:
+            if n_packets > 0:
+                print('{}: out of race, stopped logging data'.format(dt.datetime.now()))
+            n_packets = 0
+
+
 def dump_stream(port, output_filename, format='tsv',
-                append=False, packet_format='dash', config_file = None):
+                append=False, packet_format='dash', config_file = 'example_configuration.yaml'):
     '''
     Opens the given output filename, listens to UDP packets on the given port
     and writes data to the file.
