@@ -8,3 +8,6 @@ parameter_list:
   - position_y
   - position_z
   - speed
+  - angular_velocity_x
+  - angular_velocity_y
+  - angular_velocity_z
